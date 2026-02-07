@@ -3,6 +3,7 @@ import { readFileSync, writeFileSync } from "fs";
 import { resolve } from "path";
 import type { SessionTelemetry } from "@efforia/shared";
 import { sessionToCertificate } from "./index";
+import { validateSession } from "./validateSession";
 
 function main() {
   const args = process.argv.slice(2);
@@ -12,9 +13,11 @@ function main() {
   let session: SessionTelemetry;
   try {
     const raw = readFileSync(resolve(process.cwd(), inputPath), "utf-8");
-    session = JSON.parse(raw) as SessionTelemetry;
+    const parsed = JSON.parse(raw) as unknown;
+    validateSession(parsed);
+    session = parsed;
   } catch (e) {
-    console.error("Failed to read session JSON:", (e as Error).message);
+    console.error("Failed to read or validate session JSON:", (e as Error).message);
     process.exit(1);
   }
 

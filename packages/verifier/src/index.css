@@ -30,6 +30,11 @@ body {
   align-items: center;
   padding: 2rem 1rem;
 }
+@media (max-width: 480px) {
+  #root { padding: 1rem 0.5rem; }
+  .card { padding: 1rem; }
+  h1 { font-size: 1.35rem; }
+}
 
 h1, h2 {
   font-weight: 600;
@@ -78,4 +83,4 @@ input[type="file"] {
 .valid { color: var(--success); }
 .invalid { color: var(--error); }
 
-.mono { font-family: var(--font); word-break: break-all; }
+.mono { font-family: var(--font); word-break: break-all; overflow-wrap: break-word; }

@@ -6,7 +6,11 @@
     "compile": "hardhat compile",
     "test": "hardhat test",
     "deploy:monad": "hardhat run scripts/deploy.ts --network monad-testnet",
-    "anchor": "hardhat run scripts/anchor.ts --network monad-testnet"
+    "anchor": "hardhat run scripts/anchor.ts --network monad-testnet",
+    "anchor-from-session": "hardhat run scripts/anchor-from-session.ts --network monad-testnet"
+  },
+  "dependencies": {
+    "@efforia/fingerprint": "file:../fingerprint"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",

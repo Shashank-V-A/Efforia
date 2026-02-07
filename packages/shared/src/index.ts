@@ -69,6 +69,16 @@ export interface NormalizedFeatures {
 
 export type ConfidenceLevel = "low" | "medium" | "high";
 
+/** Optional score breakdown (explainable heuristics) for verifier display */
+export interface ScoreBreakdown {
+  keystrokes?: number;
+  pace?: number;
+  editDiversity?: number;
+  lowPaste?: number;
+  activeRatio?: number;
+  duration?: number;
+}
+
 export interface PoKCertificate {
   /** SHA-256 hex of normalized features (deterministic, non-reversible) */
   fingerprint_hash: string;
@@ -81,6 +91,8 @@ export interface PoKCertificate {
   author_address?: string;
   /** Optional: session duration in seconds (for display) */
   session_duration_seconds?: number;
+  /** Optional: score breakdown for verifier display */
+  score_breakdown?: ScoreBreakdown;
 }
 
 // --- Verifier input: certificate + optional chain proof ---

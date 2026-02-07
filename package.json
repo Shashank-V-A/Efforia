@@ -13,6 +13,7 @@
   "scripts": {
     "build": "npm run build -w @efforia/shared && npm run build -w @efforia/fingerprint && npm run compile -w packages/extension && npm run compile -w packages/contracts && npm run build -w packages/verifier",
     "test": "npm run test -w packages/contracts",
+    "prepush": "npm run build && npm run test -w packages/contracts && npm run test -w @efforia/fingerprint",
     "extension": "npm run compile -w packages/extension",
     "fingerprint": "node packages/fingerprint/dist/index.js",
     "contracts:compile": "npm run compile --workspace=packages/contracts",

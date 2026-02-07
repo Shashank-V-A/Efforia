@@ -41,6 +41,12 @@ End-to-end system that **proves human effort in content creation** using privacy
    - **Hash match (optional):** If you have both the certificate and the session JSON, the verifier can recompute the hash from the session and confirm it matches the certificate.  
    - **On-chain:** The verifier checks Monad testnet for the certificate’s `fingerprint_hash` and displays anchored score, timestamp, and author.
 
+## Security
+
+- **Never commit secrets.** Do not commit `.env` files or private keys. Use `packages/contracts/.env.example` and `packages/verifier/.env.example` as templates; copy to `.env` and set values locally only.
+- **Use a testnet-only wallet for deploy and anchor.** Fund it with faucet MON only. Do not use a wallet that holds mainnet assets or real value.
+- **Keep your private key private.** Do not share it in chat, code, or screenshots. If you ever expose a key, treat that wallet as compromised and move any value to a new wallet.
+
 ## Local development
 
 ### Prerequisites

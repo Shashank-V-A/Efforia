@@ -1,6 +1,40 @@
 import type { NormalizedFeatures, PoKCertificate, SessionTelemetry } from "@efforia/shared";
 
+const FINGERPRINT_HEX_LEN = 64;
+
+export interface ChainConfig {
+  id: number;
+  name: string;
+  rpc: string;
+  explorer: string;
+}
+
+export const CHAINS: ChainConfig[] = [
+  { id: 10143, name: "Monad Testnet", rpc: "https://testnet-rpc.monad.xyz", explorer: "https://testnet.monadexplorer.com" },
+  { id: 11155111, name: "Sepolia", rpc: "https://rpc.sepolia.org", explorer: "https://sepolia.etherscan.io" },
+];
+
 const MONAD_TESTNET_CHAIN_ID = 10143;
+
+/** Validate certificate shape before on-chain call. Throws with clear message if invalid. */
+export function validateCertificate(cert: PoKCertificate): void {
+  if (typeof cert.fingerprint_hash !== "string" || cert.fingerprint_hash.length !== FINGERPRINT_HEX_LEN) {
+    throw new Error("Certificate fingerprint_hash must be a 64-character hex string");
+  }
+  if (!/^[0-9a-fA-F]+$/.test(cert.fingerprint_hash)) {
+    throw new Error("Certificate fingerprint_hash must be hexadecimal");
+  }
+  if (typeof cert.human_effort_score !== "number" || cert.human_effort_score < 0 || cert.human_effort_score > 1) {
+    throw new Error("Certificate human_effort_score must be a number between 0 and 1");
+  }
+  const validConfidence = ["low", "medium", "high"].includes(cert.confidence_level);
+  if (!validConfidence) {
+    throw new Error("Certificate confidence_level must be low, medium, or high");
+  }
+  if (typeof cert.timestamp !== "string" || !cert.timestamp) {
+    throw new Error("Certificate timestamp must be a non-empty string");
+  }
+}
 const DEFAULT_CONTRACT_ADDRESS = import.meta.env.VITE_POK_CONTRACT_ADDRESS || "";
 
 /** Normalize session to features (browser-safe, mirrors @efforia/fingerprint) */
@@ -85,4 +119,8 @@ export function getDefaultContractAddress(): string {
 
 export function getMonadChainId(): number {
   return MONAD_TESTNET_CHAIN_ID;
+}
+
+export function getChainById(id: number): ChainConfig | undefined {
+  return CHAINS.find((c) => c.id === id);
 }

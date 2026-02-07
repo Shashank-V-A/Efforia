@@ -38,4 +38,17 @@ describe("PoKAnchor", function () {
     const fingerprintHash = hexToBytes32(ethers.keccak256(ethers.toUtf8Bytes("high")).slice(2));
     await expect(pok.anchor(fingerprintHash, 1001)).to.be.revertedWith("PoK: score must be 0-1000");
   });
+
+  it("Should anchor and verify real SHA-256 fingerprint (from fingerprint tool)", async function () {
+    const PoKAnchor = await ethers.getContractFactory("PoKAnchor");
+    const pok = await PoKAnchor.deploy();
+    // Real output from: node packages/fingerprint/dist/cli.js packages/fingerprint/sample-session.json
+    const realFingerprintHex = "5f7260dbcd7609e0bb15834d3af02649281dcbe0cad71e00d4bb896a8dba3090";
+    const fingerprintHash = hexToBytes32(realFingerprintHex);
+    const score = 947; // 0.947 from sample session
+    await pok.anchor(fingerprintHash, score);
+    expect(await pok.verify(fingerprintHash)).to.be.true;
+    const r = await pok.getRecord(fingerprintHash);
+    expect(r.score).to.equal(947n);
+  });
 });

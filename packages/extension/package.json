@@ -10,18 +10,10 @@
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
-      {
-        "command": "efforia.exportSession",
-        "title": "Efforia: Export session telemetry (PoK)"
-      },
-      {
-        "command": "efforia.startSession",
-        "title": "Efforia: Start telemetry session"
-      },
-      {
-        "command": "efforia.stopSession",
-        "title": "Efforia: Stop telemetry session"
-      }
+      { "command": "efforia.exportSession", "title": "Efforia: Export session telemetry (PoK)" },
+      { "command": "efforia.exportLastSession", "title": "Efforia: Export last session (from .efforia)" },
+      { "command": "efforia.startSession", "title": "Efforia: Start telemetry session" },
+      { "command": "efforia.stopSession", "title": "Efforia: Stop telemetry session" }
     ]
   },
   "scripts": {

@@ -31,3 +31,4 @@ packages/verifier/.next/
 # User-generated (don't push)
 my-certificate.json
 efforia-session.json
+.efforia/

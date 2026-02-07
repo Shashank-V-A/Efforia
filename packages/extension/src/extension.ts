@@ -4,6 +4,7 @@ import type { EditOpCounts, IdleActiveSummary, KeystrokeSample, PasteBucket, Ses
 const PASTE_BUCKETS = ["0-50", "51-200", "201-500", "501+"] as const;
 const KEYSTROKE_INTERVAL_BUCKETS = [0, 100, 200, 500, 1000, 2000, 5000, 10000]; // ms
 const IDLE_THRESHOLD_MS = 2000;
+const THROTTLE_MS = 100; // batch document changes so handler doesn't run hundreds of times per second
 
 interface KeystrokeAccum {
   count: number;
@@ -45,6 +46,22 @@ export function activate(context: vscode.ExtensionContext) {
   const fileChangeIds = new Set<string>();
   let isRunning = false;
 
+  const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+  context.subscriptions.push(statusBarItem);
+  function updateStatusBar() {
+    const total = keystrokeAccum.count + editOps.insert + editOps.delete + editOps.replace;
+    if (isRunning) {
+      statusBarItem.text = `$(circle-filled) Efforia: active ${total > 0 ? `• ${total} edits` : ""}`;
+      statusBarItem.tooltip = "PoK telemetry running. Use command palette: Efforia: Export session telemetry.";
+      statusBarItem.show();
+    } else {
+      statusBarItem.text = "$(circle-outline) Efforia: stopped";
+      statusBarItem.tooltip = "Start telemetry: Efforia: Start telemetry session";
+      statusBarItem.show();
+    }
+  }
+  updateStatusBar();
+
   function ensureSessionStarted() {
     if (!sessionStart) {
       sessionStart = new Date().toISOString();
@@ -52,47 +69,62 @@ export function activate(context: vscode.ExtensionContext) {
     }
   }
 
-  const disposableDoc = vscode.workspace.onDidChangeTextDocument((e) => {
-    if (!isRunning) return;
-    const now = Date.now();
-    ensureSessionStarted();
+  let throttleTimer: ReturnType<typeof setTimeout> | undefined;
+  let pendingEvents: { e: vscode.TextDocumentChangeEvent; now: number }[] = [];
 
-    // Idle vs active: time since last event
+  function processBatch() {
+    throttleTimer = undefined;
+    if (pendingEvents.length === 0) return;
+    const batch = pendingEvents;
+    pendingEvents = [];
+    const now = batch[batch.length - 1].now;
+
+    ensureSessionStarted();
     const elapsed = now - lastEventTime;
     if (elapsed > IDLE_THRESHOLD_MS) {
       idleMs += elapsed;
     } else {
       activeMs += Math.min(elapsed, IDLE_THRESHOLD_MS);
     }
-    lastEventTime = now;
 
-    // Track which "file" (document uri) was edited — count only, no URI stored
-    const docId = e.document.uri.toString();
-    fileChangeIds.add(docId);
+    let prevEventTime = lastEventTime;
+    for (const { e, now: eventNow } of batch) {
+      fileChangeIds.add(e.document.uri.toString());
+      for (const change of e.contentChanges) {
+        const insertLen = change.text.length;
+        const deleteLen = change.rangeLength;
+        const isPaste = insertLen > 1;
 
-    for (const change of e.contentChanges) {
-      const insertLen = change.text.length;
-      const deleteLen = change.rangeLength;
-      const isPaste = insertLen > 1;
-
-      if (isPaste) {
-        const bucket = getPasteBucket(insertLen);
-        pasteCountByBucket[bucket] = (pasteCountByBucket[bucket] ?? 0) + 1;
-        editOps.insert += 1;
-      } else {
-        if (deleteLen > 0 && insertLen > 0) editOps.replace += 1;
-        else if (deleteLen > 0) editOps.delete += 1;
-        else if (insertLen === 1) {
-          keystrokeAccum.count += 1;
-          if (lastEventTime > 0 && keystrokeAccum.intervals.length < 500) {
-            const interval = now - lastEventTime;
-            if (interval >= 0 && interval <= 60000) keystrokeAccum.intervals.push(interval);
-          }
+        if (isPaste) {
+          const bucket = getPasteBucket(insertLen);
+          pasteCountByBucket[bucket] = (pasteCountByBucket[bucket] ?? 0) + 1;
           editOps.insert += 1;
+        } else {
+          if (deleteLen > 0 && insertLen > 0) editOps.replace += 1;
+          else if (deleteLen > 0) editOps.delete += 1;
+          else if (insertLen === 1) {
+            keystrokeAccum.count += 1;
+            if (prevEventTime > 0 && keystrokeAccum.intervals.length < 500) {
+              const interval = eventNow - prevEventTime;
+              if (interval >= 0 && interval <= 60000) keystrokeAccum.intervals.push(interval);
+            }
+            editOps.insert += 1;
+          }
         }
+        prevEventTime = eventNow;
       }
     }
     lastEventTime = now;
+    if (isRunning) updateStatusBar();
+  }
+
+  const disposableDoc = vscode.workspace.onDidChangeTextDocument((e) => {
+    if (!isRunning) return;
+    const now = Date.now();
+    pendingEvents.push({ e, now });
+    if (!throttleTimer) {
+      throttleTimer = setTimeout(processBatch, THROTTLE_MS);
+    }
   });
 
   function buildSessionJson(): SessionTelemetry {
@@ -152,23 +184,60 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand("efforia.startSession", () => {
       resetSession();
       isRunning = true;
+      updateStatusBar();
       vscode.window.showInformationMessage("Efforia PoK: Telemetry session started.");
     }),
     vscode.commands.registerCommand("efforia.stopSession", () => {
       isRunning = false;
+      updateStatusBar();
       vscode.window.showInformationMessage("Efforia PoK: Telemetry session stopped.");
     }),
     vscode.commands.registerCommand("efforia.exportSession", async () => {
       ensureSessionStarted();
       const session = buildSessionJson();
       const json = JSON.stringify(session, null, 2);
+      const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri;
+      const defaultUri = workspaceRoot
+        ? vscode.Uri.joinPath(workspaceRoot, `efforia-session-${Date.now()}.json`)
+        : vscode.Uri.file(`efforia-session-${Date.now()}.json`);
       const uri = await vscode.window.showSaveDialog({
-        defaultUri: vscode.Uri.file(`efforia-session-${Date.now()}.json`),
+        defaultUri,
         filters: { JSON: ["json"] },
       });
       if (uri) {
         await vscode.workspace.fs.writeFile(uri, Buffer.from(json, "utf-8"));
+        if (workspaceRoot) {
+          const efforiaDir = vscode.Uri.joinPath(workspaceRoot, ".efforia");
+          try {
+            await vscode.workspace.fs.createDirectory(efforiaDir);
+            const lastPath = vscode.Uri.joinPath(efforiaDir, "last-session.json");
+            await vscode.workspace.fs.writeFile(lastPath, Buffer.from(json, "utf-8"));
+          } catch (_) {}
+        }
         vscode.window.showInformationMessage("Efforia PoK: Session telemetry exported.");
+      }
+    }),
+    vscode.commands.registerCommand("efforia.exportLastSession", async () => {
+      const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri;
+      if (!workspaceRoot) {
+        vscode.window.showWarningMessage("Efforia: Open a workspace first to use Export last session.");
+        return;
+      }
+      const lastPath = vscode.Uri.joinPath(workspaceRoot, ".efforia", "last-session.json");
+      let data: Uint8Array;
+      try {
+        data = await vscode.workspace.fs.readFile(lastPath);
+      } catch {
+        vscode.window.showWarningMessage("Efforia: No last session found. Export a session first.");
+        return;
+      }
+      const uri = await vscode.window.showSaveDialog({
+        defaultUri: vscode.Uri.joinPath(workspaceRoot, `efforia-last-session-${Date.now()}.json`),
+        filters: { JSON: ["json"] },
+      });
+      if (uri) {
+        await vscode.workspace.fs.writeFile(uri, data);
+        vscode.window.showInformationMessage("Efforia PoK: Last session exported.");
       }
     })
   );
