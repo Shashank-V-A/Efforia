@@ -1,0 +1,33 @@
+node_modules/
+dist/
+build/
+.next/
+out/
+*.vsix
+.env
+.env.local
+.env.*.local
+*.env
+!.env.example
+# Secrets / keys (never commit)
+*.pem
+*.key
+.secret
+secrets/
+**/secrets/
+coverage/
+.nyc_output/
+*.log
+.DS_Store
+Thumbs.db
+.cache/
+.idea/
+.vscode-test/
+*.tsbuildinfo
+packages/contracts/artifacts/
+packages/contracts/cache/
+packages/contracts/typechain-types/
+packages/verifier/.next/
+# User-generated (don't push)
+my-certificate.json
+efforia-session.json

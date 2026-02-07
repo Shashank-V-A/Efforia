@@ -1,0 +1,17 @@
+{
+  "sessionStart": "2025-02-07T10:00:00.000Z",
+  "sessionEnd": "2025-02-07T10:15:00.000Z",
+  "keystrokes": [
+    { "count": 80, "meanIntervalMs": 180, "varianceBucket": 1 },
+    { "count": 120, "meanIntervalMs": 250, "varianceBucket": 1 }
+  ],
+  "editOps": { "insert": 150, "delete": 30, "replace": 12 },
+  "pasteBuckets": [
+    { "bucket": "0-50", "count": 2 },
+    { "bucket": "51-200", "count": 0 },
+    { "bucket": "201-500", "count": 0 },
+    { "bucket": "501+", "count": 0 }
+  ],
+  "idleActive": { "activeSeconds": 600, "idleSeconds": 300 },
+  "fileChangeCount": 3
+}

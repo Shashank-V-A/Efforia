@@ -1,0 +1,39 @@
+{
+  "name": "efforia-pok-telemetry",
+  "displayName": "Efforia PoK Telemetry",
+  "description": "Privacy-safe process telemetry for Proof-of-Knowledge (no raw text or filenames)",
+  "version": "1.0.0",
+  "publisher": "efforia",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Other"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "efforia.exportSession",
+        "title": "Efforia: Export session telemetry (PoK)"
+      },
+      {
+        "command": "efforia.startSession",
+        "title": "Efforia: Start telemetry session"
+      },
+      {
+        "command": "efforia.stopSession",
+        "title": "Efforia: Stop telemetry session"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p .",
+    "watch": "tsc -w -p ."
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "@efforia/shared": "file:../shared"
+  }
+}

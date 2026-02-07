@@ -1,0 +1,25 @@
+{
+  "name": "efforia-pok",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Proof-of-Knowledge: human effort verification via process telemetry and on-chain anchoring",
+  "workspaces": [
+    "packages/extension",
+    "packages/fingerprint",
+    "packages/contracts",
+    "packages/verifier",
+    "packages/shared"
+  ],
+  "scripts": {
+    "build": "npm run build -w @efforia/shared && npm run build -w @efforia/fingerprint && npm run compile -w packages/extension && npm run compile -w packages/contracts && npm run build -w packages/verifier",
+    "test": "npm run test -w packages/contracts",
+    "extension": "npm run compile -w packages/extension",
+    "fingerprint": "node packages/fingerprint/dist/index.js",
+    "contracts:compile": "npm run compile --workspace=packages/contracts",
+    "contracts:test": "npm run test --workspace=packages/contracts",
+    "verifier:dev": "npm run dev --workspace=packages/verifier"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
