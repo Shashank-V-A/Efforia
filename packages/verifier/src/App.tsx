@@ -51,9 +51,11 @@ export default function App() {
         confidence_level: (data.confidence_level as PoKCertificate["confidence_level"]) ?? "medium",
         timestamp: typeof data.timestamp === "string" ? data.timestamp : new Date().toISOString(),
         ...(typeof data.author_address === "string" && { author_address: data.author_address }),
-          ...(typeof data.session_duration_seconds === "number" && { session_duration_seconds: data.session_duration_seconds }),
-          ...(data.score_breakdown && typeof data.score_breakdown === "object" && { score_breakdown: data.score_breakdown as PoKCertificate["score_breakdown"] }),
-          };
+        ...(typeof data.session_duration_seconds === "number" && { session_duration_seconds: data.session_duration_seconds }),
+        ...(data.score_breakdown && typeof data.score_breakdown === "object" && !Array.isArray(data.score_breakdown)
+          ? { score_breakdown: data.score_breakdown as PoKCertificate["score_breakdown"] }
+          : {}),
+      };
           setCert(cert);
       setStep("result");
       setOnChain(null);
@@ -63,7 +65,7 @@ export default function App() {
 
   function processSessionJson(data: Record<string, unknown>) {
     if (data.keystrokes && data.editOps && data.idleActive) {
-      setSession(data as SessionTelemetry);
+      setSession(data as unknown as SessionTelemetry);
     } else throw new Error("Invalid session format");
   }
 
